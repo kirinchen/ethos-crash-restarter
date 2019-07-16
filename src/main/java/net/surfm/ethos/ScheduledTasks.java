@@ -1,6 +1,10 @@
 package net.surfm.ethos;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.LineNumberReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -40,19 +44,27 @@ public class ScheduledTasks {
 		if (StringUtils.isBlank(filePath))
 			throw new NullPointerException("not get file path");
 
-		try (Stream<String> lines = Files.lines(Paths.get(filePath), Charset.defaultCharset())) {
-
-			long numOfLines = lines.count();
-			log.info(" numOfLines {}", numOfLines);
-			if (lastCount <= minFileCount) {
-				lastCount = numOfLines;
-				log.info(" init Line {} current line {}",minFileCount, numOfLines);
-			} else if (lastCount == numOfLines) {
-				callRestart();
-			}
+		long numOfLines = getFileLine(filePath);
+		log.info(" numOfLines {}", numOfLines);
+		if (lastCount <= minFileCount) {
+			lastCount = numOfLines;
+			log.info(" init Line {} current line {}", minFileCount, numOfLines);
+		} else if (lastCount == numOfLines) {
+			callRestart();
 		}
 
 		log.info(fixedRate + " The time is now {}", dateFormat.format(new Date()));
+	}
+
+	private long getFileLine(String fileN) throws FileNotFoundException, IOException {
+		try (FileReader input = new FileReader(fileN); LineNumberReader count = new LineNumberReader(input);) {
+			while (count.skip(Long.MAX_VALUE) > 0) {
+				// Loop just in case the file is > Long.MAX_VALUE or skip() decides to not read
+				// the entire file
+			}
+
+			return count.getLineNumber() + 1; // +1 because line index starts at 0
+		}
 	}
 
 	private void callRestart() throws IOException, InterruptedException {
